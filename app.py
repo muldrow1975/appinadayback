@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_cors import CORS
@@ -13,46 +13,50 @@ db = SQLAlchemy(app)
 ma = Marshmallow(app)
 
 class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True, nullable=False)
-    user_name = db.Column(db.String, Unique=False, nullable=False)
-    password = db.Column(db.String, Unique=False, nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    user_name = db.Column(db.String)
 
-    def __init__(self, user_name, password):
+    def __init__(self, user_name):
         self.user_name = user_name
-        self.password = password
 
 class UserSchema(ma.Schema):
     class Meta:
-        fields = ('id', 'user_name', 'password')
+        fields = ('id', 'user_name')
 
 user_schema = UserSchema()
-multi_user_schema = UserSchema()
-
-@app.route('/room1', methods=["GET"])
-def Choice_one_page():
-    return render_template('choice1.html')
+multi_user_schema = UserSchema(many=True)
 
 
-@app.route('/room2', methods=["GET"])
-def Choice_two_page():
-    return render_template('choice2.html')
+@app.route('/user/add', methods=["POST"])
+def add_user():
+    post_data = request.get_json()
+    user_name = post_data.get('user_name')
 
-@app.route('/room2-1', methods=["GET"])
-def Choice_two_one_page():
-    return render_template('choice2-1.html')
+    new_user = User(user_name)
+    db.session.add(new_user)
+    db.session.commit()
 
-@app.route('/room2-2', methods=["GET"])
-def Choice_two_two_page():
-    return render_template('choice2-2.html')
+    user_schema.dump(new_user)
+    return jsonify('new user added.')
 
 
-@app.route('/room3', methods=["GET"])
-def Choice_three_page():
-    return render_template('choice3.html')
+@app.route('/login/<user_name>', methods=["GET"])
+def login(user_name):
+    login = request.form
+    
+    if user_name == db.login:
+        return print('its working')
+    else:
+        return jsonify('invalid username')
 
-@app.route('/room3-1', methods=["GET"])
-def Choice_three_one_page():
-    return render_template('choice3-1.html')
+    
+    
+
+@app.route('/users/get')
+def get_users():
+    all_users = db.session.query(User).all()
+    return jsonify(multi_user_schema.dump(all_users))
+
 
 
 if __name__ == '__main__':
